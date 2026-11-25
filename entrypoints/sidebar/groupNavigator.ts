@@ -4,6 +4,7 @@ type GroupEntry = {
   disclosure: HTMLDetailsElement
   title: HTMLSpanElement
   count: HTMLSpanElement
+  favicon: HTMLImageElement
   tabs: HTMLUListElement
   tabSignature: string
 }
@@ -26,9 +27,25 @@ function createEntry(): GroupEntry {
   const summary = document.createElement("summary")
   const title = document.createElement("span")
   const count = document.createElement("span")
+  const favicon = document.createElement("img")
   const tabs = document.createElement("ul")
   title.className = "group-navigator-title"
   count.className = "group-navigator-count"
+  if (import.meta.env.CHROME) {
+    const icon = document.createElement("span")
+    icon.className = "group-navigator-icon"
+    icon.setAttribute("aria-hidden", "true")
+    favicon.alt = ""
+    favicon.hidden = true
+    favicon.addEventListener("load", () => {
+      favicon.hidden = false
+    })
+    favicon.addEventListener("error", () => {
+      favicon.hidden = true
+    })
+    icon.append(favicon)
+    summary.append(icon)
+  }
   summary.append(title, count)
   disclosure.append(summary, tabs)
 
@@ -61,7 +78,27 @@ function createEntry(): GroupEntry {
     }
   })
 
-  return { disclosure, title, count, tabs, tabSignature: "" }
+  return { disclosure, title, count, favicon, tabs, tabSignature: "" }
+}
+
+function updateGroupIcon(entry: GroupEntry, tabs: chrome.tabs.Tab[]): void {
+  if (!import.meta.env.CHROME) return
+
+  const pageUrl = tabs.find(tab => tab.favIconUrl && /^https?:\/\//i.test(tab.url ?? ""))?.url
+  if (!pageUrl) {
+    entry.favicon.hidden = true
+    entry.favicon.removeAttribute("src")
+    return
+  }
+
+  // This extension URL uses Chrome's favicon cache rather than the site's image URL.
+  const url = new URL("/_favicon/", window.location.href)
+  url.searchParams.set("pageUrl", pageUrl)
+  url.searchParams.set("size", "32")
+  if (entry.favicon.src !== url.href) {
+    entry.favicon.hidden = true
+    entry.favicon.src = url.href
+  }
 }
 
 function updateTabs(entry: GroupEntry, tabs: chrome.tabs.Tab[]): void {
@@ -131,6 +168,7 @@ async function refresh(request: number): Promise<void> {
         "--tab-group-color",
         getColorInfo(group.color)?.hex ?? "#9e9e9e"
       )
+      updateGroupIcon(entry, members)
       updateTabs(entry, members)
       const current = list.children[index++]
       if (current !== entry.disclosure) list.insertBefore(entry.disclosure, current ?? null)

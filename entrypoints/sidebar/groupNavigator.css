@@ -35,6 +35,29 @@
   overflow-wrap: anywhere;
 }
 
+.group-navigator-icon {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 6px;
+  place-items: center;
+  vertical-align: -3px;
+}
+
+.group-navigator-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.group-navigator-icon:not(:has(img:not([hidden])))::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tab-group-color);
+}
+
 .group-navigator-count {
   margin-inline-start: 8px;
   color: #4b5563;

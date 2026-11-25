@@ -122,6 +122,38 @@ test.describe("Sidebar", () => {
     }).toPass()
   })
 
+  test("shows the site's cached favicon on the group heading", async () => {
+    const pageUrl = `${TEST_URLS.domain1}/favicon-test`
+    const redIcon =
+      "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGN4JmVMEmIY1TCqYfhqAADpmjMQTXqqhQAAAABJRU5ErkJggg=="
+    await context.route(pageUrl, route =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<title>Favicon test</title><link rel="icon" href="data:image/png;base64,${redIcon}">`
+      })
+    )
+    try {
+      await createTab(context, pageUrl)
+      await sidebarPage.locator("#group").click()
+      const group = sidebarPage.locator(".group-navigator-list summary", { hasText: "Example" })
+      const icon = group.locator(".group-navigator-icon img")
+      await expect(icon).toBeVisible()
+      await expect(icon).toHaveAttribute("src", /\/_favicon\/\?pageUrl=/)
+      await expect
+        .poll(() =>
+          icon.evaluate((image: HTMLImageElement) => {
+            const canvas = document.createElement("canvas")
+            const ctx = canvas.getContext("2d")!
+            ctx.drawImage(image, 0, 0, 1, 1)
+            return Array.from(ctx.getImageData(0, 0, 1, 1).data)
+          })
+        )
+        .toEqual([230, 26, 51, 255])
+    } finally {
+      await context.unroute(pageUrl)
+    }
+  })
+
   test("keeps similar group names distinct and restores the original names", async () => {
     const otherDomain = "https://examplelong.com"
     const otherTab = await createTab(context, otherDomain)
