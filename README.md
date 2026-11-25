@@ -83,6 +83,7 @@ A lightweight cross-browser extension that automatically groups open tabs by dom
 - Toggle grouping by subdomain (on/off)
 - Toggle only applying to new tabs (on/off)
 - Toggle preservation of manual color choices (on/off)
+- **Group names up to 5 characters** renames open groups and reserves distinct short names for future groups. Turning it off restores the full names of open groups.
 
 ### 📱 Side Panel & Sidebar Support
 

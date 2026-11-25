@@ -1,4 +1,8 @@
 {
+  "settingCompactGroupTitles": { "message": "Имена групп до 5 символов" },
+  "compactGroupTitlesUpdateError": {
+    "message": "Не все имена удалось обновить. Переключите настройку, чтобы повторить попытку."
+  },
   "sidebarOpenGroups": { "message": "Открытые группы" },
   "sidebarNoOpenGroups": { "message": "В этом окне нет открытых групп." },
   "sidebarGroupLoadError": { "message": "Не удалось загрузить группы вкладок." },

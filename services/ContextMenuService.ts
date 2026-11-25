@@ -8,10 +8,10 @@ import type { CustomRule, TabGroupColor } from "../types"
 import { extractDomain } from "../utils/DomainUtils"
 import { t } from "../utils/i18n"
 import { saveAllStorage } from "../utils/storage"
+import { compactGroupTitles } from "./CompactGroupTitles"
 import { rulesService } from "./RulesService"
 import { tabGroupService } from "./TabGroupService"
 import { tabGroupState } from "./TabGroupState"
-import { stripIndexPrefix } from "./TabSortService"
 
 /**
  * Data collected from a tab group for rule creation
@@ -290,7 +290,7 @@ class ContextMenuService {
       if (!browser.tabGroups) return
 
       const group = await browser.tabGroups.get(tab.groupId)
-      const title = stripIndexPrefix(group?.title || "")
+      const title = compactGroupTitles.fullTitle(group?.title || "")
 
       if (!title) {
         console.log("[ContextMenuService] Group has no title, cannot protect it")
@@ -498,7 +498,7 @@ class ContextMenuService {
       const groups = await browser.tabGroups.query({ windowId: tab.windowId })
       const currentGroup = groups.find(g => g.id === tab.groupId)
 
-      const groupName = currentGroup?.title || "New Rule"
+      const groupName = compactGroupTitles.fullTitle(currentGroup?.title || "") || "New Rule"
       const groupColor = (currentGroup?.color || "blue") as TabGroupColor
 
       return {

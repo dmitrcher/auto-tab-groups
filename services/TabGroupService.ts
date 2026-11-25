@@ -9,9 +9,10 @@ import { getRandomTabGroupColor } from "../utils/Constants"
 import { extractDomain, getDomainDisplayName } from "../utils/DomainUtils"
 import { getGroupColor, groupColorMapping, updateGroupColor } from "../utils/storage"
 import { withTabEditRetry } from "../utils/withTabEditRetry"
+import { compactGroupTitles } from "./CompactGroupTitles"
 import { type MatchedRule, rulesService } from "./RulesService"
 import { tabGroupState } from "./TabGroupState"
-import { stripIndexPrefix, tabSortService } from "./TabSortService"
+import { tabSortService } from "./TabSortService"
 
 /**
  * One group's tabs moving to the window that already holds most of that group
@@ -222,7 +223,7 @@ class TabGroupServiceSimplified {
   isProtectedTitle(title: string | undefined): boolean {
     if (tabGroupState.protectedGroupTitles.length === 0) return false
     if (!title) return false
-    return tabGroupState.protectedGroupTitles.includes(stripIndexPrefix(title))
+    return tabGroupState.protectedGroupTitles.includes(compactGroupTitles.fullTitle(title))
   }
 
   /**
@@ -260,7 +261,7 @@ class TabGroupServiceSimplified {
     group: Pick<Browser.tabGroups.TabGroup, "title">,
     tabsInGroup: Browser.tabs.Tab[]
   ): Promise<boolean> {
-    const title = stripIndexPrefix(group.title || "")
+    const title = compactGroupTitles.fullTitle(group.title || "")
     if (!title) return false
     if (title === "System") return true
 
@@ -319,7 +320,7 @@ class TabGroupServiceSimplified {
     if (tabIds.length === 0) return null
 
     return {
-      title: stripIndexPrefix(group.title || ""),
+      title: compactGroupTitles.fullTitle(group.title || ""),
       fromWindowId: group.windowId,
       toWindowId: target.windowId,
       tabIds
@@ -351,13 +352,13 @@ class TabGroupServiceSimplified {
 
       const home = new Map<string, { windowId: number; groupId: number; size: number }>()
       for (const group of groups) {
-        const title = stripIndexPrefix(group.title || "")
+        const title = compactGroupTitles.fullTitle(group.title || "")
         if (!title) continue
 
         // "Never auto-group this" should also mean "don't haul it between
         // windows in a bulk sweep". System is the extension's own bucket for
         // browser pages, not a topic anyone arranges windows around.
-        if (title === "System" || this.isProtectedTitle(title)) continue
+        if (title === "System" || this.isProtectedTitle(group.title)) continue
 
         const size = sizeOf.get(group.id) ?? 0
         const best = home.get(title)
@@ -368,7 +369,7 @@ class TabGroupServiceSimplified {
 
       const moves: ConsolidationMove[] = []
       for (const group of groups) {
-        const target = home.get(stripIndexPrefix(group.title || ""))
+        const target = home.get(compactGroupTitles.fullTitle(group.title || ""))
         if (!target || target.windowId === group.windowId) continue
 
         const move = this.buildConsolidationMove(group, target, tabs)
@@ -404,7 +405,7 @@ class TabGroupServiceSimplified {
       for (const move of moves) {
         try {
           const target = (await browser.tabGroups.query({ windowId: move.toWindowId })).find(
-            group => stripIndexPrefix(group.title || "") === move.title
+            group => compactGroupTitles.fullTitle(group.title || "") === move.title
           )
           if (!target) continue
 
@@ -486,7 +487,9 @@ class TabGroupServiceSimplified {
 
       const groups = await browser.tabGroups.query({})
       const candidates = groups.filter(
-        group => group.windowId !== tab.windowId && stripIndexPrefix(group.title || "") === title
+        group =>
+          group.windowId !== tab.windowId &&
+          compactGroupTitles.fullTitle(group.title || "") === title
       )
       if (candidates.length === 0) return { moved: false, reason: "no-group" }
 
@@ -693,7 +696,7 @@ class TabGroupServiceSimplified {
 
     try {
       const updateOptions: Browser.tabGroups.UpdateProperties = {
-        title: expectedTitle
+        title: await compactGroupTitles.displayTitle(expectedTitle)
       }
 
       if (customRule?.color) {
@@ -800,11 +803,10 @@ class TabGroupServiceSimplified {
       const groups = await browser.tabGroups.query({ windowId })
       return (
         groups.find(group => {
-          if (group.title === title) return true
-          if (tabGroupState.indexGroupTitles) {
-            return stripIndexPrefix(group.title || "") === title
+          if (compactGroupTitles.enabled || tabGroupState.indexGroupTitles) {
+            return compactGroupTitles.fullTitle(group.title || "") === title
           }
-          return false
+          return group.title === title
         }) || null
       )
     } catch (error) {
@@ -1029,7 +1031,9 @@ class TabGroupServiceSimplified {
       if (!browser.tabGroups) return false
 
       const groups = await browser.tabGroups.query({})
-      const systemGroups = groups.filter(group => stripIndexPrefix(group.title || "") === "System")
+      const systemGroups = groups.filter(
+        group => compactGroupTitles.fullTitle(group.title || "") === "System"
+      )
 
       if (systemGroups.length === 0) {
         console.log(`[TabGroupService] No System group found`)
@@ -1100,7 +1104,8 @@ class TabGroupServiceSimplified {
       const newColorMapping = { ...colorMappingValue }
 
       for (const group of groups) {
-        if (customRuleNames.has(group.title || "")) {
+        const title = compactGroupTitles.fullTitle(group.title || "")
+        if (customRuleNames.has(title)) {
           continue
         }
 
@@ -1110,7 +1115,7 @@ class TabGroupServiceSimplified {
           await browser.tabGroups.update(group.id, {
             color: randomColor as Browser.tabGroups.Color
           })
-          newColorMapping[group.title || ""] = randomColor
+          newColorMapping[title] = randomColor
         } catch (error) {
           console.warn(`[TabGroupService] Failed to update color:`, error)
         }
@@ -1197,7 +1202,7 @@ class TabGroupServiceSimplified {
    */
   async rememberGroupColor(group: Browser.tabGroups.TabGroup): Promise<boolean> {
     try {
-      const title = stripIndexPrefix(group.title || "")
+      const title = compactGroupTitles.fullTitle(group.title || "")
       if (!title) return false
 
       // The mapping doubles as our ownership ledger — writing a foreign group
@@ -1228,7 +1233,7 @@ class TabGroupServiceSimplified {
       let restoredCount = 0
 
       for (const group of groups) {
-        const savedColor = colorMappingValue[stripIndexPrefix(group.title || "")]
+        const savedColor = colorMappingValue[compactGroupTitles.fullTitle(group.title || "")]
         if (savedColor && savedColor !== group.color) {
           try {
             await browser.tabGroups.update(group.id, {

@@ -13,6 +13,7 @@ import {
   collapseAllGroups,
   createTab,
   disableAutoGroup,
+  enableAutoGroup,
   getActiveTab,
   getExtensionId,
   getTabGroups,
@@ -24,7 +25,8 @@ import {
   setMinimumTabs,
   TEST_URLS,
   ungroupAllTabs,
-  waitForGroup
+  waitForGroup,
+  waitForTabInGroup
 } from "./helpers/extension-helpers"
 
 let context: BrowserContext
@@ -118,6 +120,36 @@ test.describe("Sidebar", () => {
     await expect(async () => {
       expect(await getTabGroups(popupPage)).toEqual([])
     }).toPass()
+  })
+
+  test("keeps similar group names distinct and restores the original names", async () => {
+    const otherDomain = "https://examplelong.com"
+    const otherTab = await createTab(context, otherDomain)
+    await createTab(context, TEST_URLS.domain1)
+    const toggle = sidebarPage.locator("#compactGroupTitlesToggle")
+    try {
+      await sidebarPage.locator("#group").click()
+      const first = await waitForGroup(popupPage, "Example")
+      const second = await waitForGroup(popupPage, "Examplelong")
+
+      await toggle.check()
+      expect((await waitForGroup(popupPage, "Examp")).id).toBe(first.id)
+      expect((await waitForGroup(popupPage, "Exam2")).id).toBe(second.id)
+
+      await enableAutoGroup(popupPage)
+      const newTab = await createTab(context, `${otherDomain}/next`)
+      try {
+        await waitForTabInGroup(popupPage, `${otherDomain}/next`, "Exam2")
+        await toggle.uncheck()
+        expect((await waitForGroup(popupPage, "Example")).id).toBe(first.id)
+        expect((await waitForGroup(popupPage, "Examplelong")).id).toBe(second.id)
+      } finally {
+        await newTab.close()
+      }
+    } finally {
+      if (await toggle.isChecked()) await toggle.uncheck()
+      await otherTab.close()
+    }
   })
 
   test("previews the tabs of a collapsed group and switches to an existing tab", async () => {

@@ -38,6 +38,12 @@ const groupByToggleOptions = document.querySelectorAll<HTMLButtonElement>(
   ".group-by-toggle-bar:not(.sort-direction-toggle-bar) .toggle-option"
 )
 const minimumTabsInput = document.getElementById("minimumTabsInput") as HTMLInputElement
+const compactGroupTitlesToggle = document.getElementById(
+  "compactGroupTitlesToggle"
+) as HTMLInputElement
+const compactGroupTitlesStatus = document.getElementById(
+  "compactGroupTitlesStatus"
+) as HTMLParagraphElement
 
 // Auto-collapse Elements
 const autoCollapseToggle = document.getElementById("autoCollapseToggle") as HTMLInputElement
@@ -678,6 +684,34 @@ const i18nReady: Promise<void> = (async () => {
 })()
 updateVersionDisplay()
 updateBrowserDisplay()
+
+function updateCompactTitleControls(enabled: boolean): void {
+  compactGroupTitlesToggle.checked = enabled
+  indexGroupTitlesToggle.disabled = enabled
+}
+
+void sendMessage<{ enabled?: boolean }>({ action: "getCompactGroupTitles" }).then(response => {
+  updateCompactTitleControls(response?.enabled === true)
+})
+
+compactGroupTitlesToggle.addEventListener("change", async () => {
+  const enabled = compactGroupTitlesToggle.checked
+  compactGroupTitlesToggle.disabled = true
+  try {
+    const response = await sendMessage<{ enabled?: boolean; failed?: number }>({
+      action: "toggleCompactGroupTitles",
+      enabled
+    })
+    updateCompactTitleControls(response?.enabled ?? !enabled)
+    const failed = response?.enabled === undefined || Boolean(response.failed)
+    compactGroupTitlesStatus.textContent = failed
+      ? t("compactGroupTitlesUpdateError", "Some group names could not be updated.")
+      : ""
+    compactGroupTitlesStatus.hidden = !failed
+  } finally {
+    compactGroupTitlesToggle.disabled = false
+  }
+})
 
 // Language picker change handler — also re-renders dynamic lists so their
 // JS-rendered strings (Edit/Delete buttons, truncation suffix, empty states)

@@ -6,7 +6,9 @@
  * and only moving groups that are actually out of place.
  */
 
+import { stripIndexPrefix } from "../utils/GroupTitles"
 import { withTabEditRetry } from "../utils/withTabEditRetry"
+import { compactGroupTitles } from "./CompactGroupTitles"
 import { tabGroupState } from "./TabGroupState"
 
 /**
@@ -19,15 +21,7 @@ interface TabGroupsWithMove {
   ): Promise<Array<{ id: number; title?: string; windowId: number }>>
 }
 
-const INDEX_PREFIX_PATTERN = /^\d+\. /
-
-/**
- * Strips a leading index prefix (e.g., "1. GitHub" → "GitHub").
- * Returns the title unchanged if no prefix is present.
- */
-export function stripIndexPrefix(title: string): string {
-  return title.replace(INDEX_PREFIX_PATTERN, "")
-}
+export { stripIndexPrefix } from "../utils/GroupTitles"
 
 /**
  * Compares current group order against desired order by group ID sequence.
@@ -102,13 +96,11 @@ class TabSortService {
       const sorted = [...groups].sort(
         (a, b) =>
           directionFactor *
-          stripIndexPrefix(a.title ?? "").localeCompare(
-            stripIndexPrefix(b.title ?? ""),
-            undefined,
-            {
+          compactGroupTitles
+            .fullTitle(a.title ?? "")
+            .localeCompare(compactGroupTitles.fullTitle(b.title ?? ""), undefined, {
               sensitivity: "base"
-            }
-          )
+            })
       )
 
       console.log(
@@ -120,7 +112,7 @@ class TabSortService {
       )
 
       // Update index prefixes if enabled (title-only, no moves yet)
-      if (tabGroupState.indexGroupTitles) {
+      if (tabGroupState.indexGroupTitles && !compactGroupTitles.enabled) {
         for (let i = 0; i < sorted.length; i++) {
           const group = sorted[i]
           const strippedTitle = stripIndexPrefix(group.title || "")

@@ -16,6 +16,7 @@ import {
   tabGroupState
 } from "../services"
 import { handleCommand } from "../services/CommandService"
+import { compactGroupTitles } from "../services/CompactGroupTitles"
 import { seedProtectedGroupsOnFirstRun } from "../services/FirstRunService"
 import {
   parseAiRuleResponse,
@@ -32,33 +33,25 @@ import { detectConflicts } from "../utils/RuleConflictDetector"
 import { cachedAiSuggestions, loadAllStorage, saveAllStorage } from "../utils/storage"
 
 export default defineBackground(() => {
-  // State initialization flag to ensure it only happens once per service worker instance
-  let stateInitialized = false
+  let stateLoading: Promise<void> | undefined
 
-  /**
-   * Ensures state is loaded from storage (SSOT) before any operations
-   */
-  async function ensureStateLoaded(): Promise<void> {
-    if (!stateInitialized) {
-      try {
-        console.log("Service worker starting - loading state from storage...")
-        await seedProtectedGroupsOnFirstRun()
-        const storageData = await loadAllStorage()
-        tabGroupState.updateFromStorage(storageData)
-        aiService.updateFromStorage(storageData)
-        await initI18n(tabGroupState.userLocale)
-        stateInitialized = true
-        console.log("State loaded successfully from storage")
-        console.log("Auto-grouping enabled:", tabGroupState.autoGroupingEnabled)
-        console.log("Custom rules count:", tabGroupState.customRules.size)
+  function ensureStateLoaded(): Promise<void> {
+    stateLoading ??= loadState().catch(error => {
+      stateLoading = undefined
+      console.error("Error loading state from storage:", error)
+      throw error
+    })
+    return stateLoading
+  }
 
-        // Restore saved colors for existing groups
-        await tabGroupService.restoreSavedColors()
-      } catch (error) {
-        console.error("Error loading state from storage:", error)
-        throw error
-      }
-    }
+  async function loadState(): Promise<void> {
+    await seedProtectedGroupsOnFirstRun()
+    const storageData = await loadAllStorage()
+    tabGroupState.updateFromStorage(storageData)
+    aiService.updateFromStorage(storageData)
+    await initI18n(tabGroupState.userLocale)
+    await compactGroupTitles.initialize()
+    await tabGroupService.restoreSavedColors()
   }
 
   /**
@@ -363,6 +356,20 @@ export default defineBackground(() => {
               await tabGroupService.groupAllTabs()
             }
             result = { titles: tabGroupState.protectedGroupTitles }
+            break
+          }
+
+          case "getCompactGroupTitles":
+            result = { enabled: compactGroupTitles.enabled }
+            break
+
+          case "toggleCompactGroupTitles": {
+            const failed = await compactGroupTitles.setEnabled(msg.enabled === true)
+            if (!compactGroupTitles.enabled) {
+              const { tabSortService } = await import("../services/TabSortService")
+              await tabSortService.applySorting()
+            }
+            result = { enabled: compactGroupTitles.enabled, failed }
             break
           }
 
@@ -1001,6 +1008,7 @@ export default defineBackground(() => {
 
         // Keeps a hand-picked colour as the one we rebuild the group with
         await tabGroupService.rememberGroupColor(group)
+        await compactGroupTitles.updateGroup(group)
       } catch (error) {
         console.error("[tabGroups.onUpdated] Error handling group update:", error)
       }

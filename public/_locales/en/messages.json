@@ -1,4 +1,8 @@
 {
+  "settingCompactGroupTitles": { "message": "Group names up to 5 characters" },
+  "compactGroupTitlesUpdateError": {
+    "message": "Some group names could not be updated. Switch the setting off and on to retry."
+  },
   "sidebarOpenGroups": { "message": "Open groups" },
   "sidebarNoOpenGroups": { "message": "No open groups in this window." },
   "sidebarGroupLoadError": { "message": "Could not load tab groups." },
