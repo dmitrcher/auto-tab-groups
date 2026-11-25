@@ -87,6 +87,7 @@ A lightweight cross-browser extension that automatically groups open tabs by dom
 ### 📱 Side Panel & Sidebar Support
 
 - Chrome side panel and Firefox sidebar integration
+- In Chrome, right-click the extension icon and select **Open side panel**.
 - Hover over an open group in the side panel to see its tabs, then select a tab to switch to it.
 - Click a group heading or use the keyboard to keep the list open.
 - Sidebar popup as an alternative to the main popup

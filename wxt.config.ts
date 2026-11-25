@@ -73,6 +73,7 @@ export default defineConfig({
     if (browser === "chrome") {
       return {
         ...baseManifest,
+        permissions: [...baseManifest.permissions, "sidePanel"],
         // 'wasm-unsafe-eval' required for WebLLM: @mlc-ai/web-llm uses WebAssembly for model inference
         content_security_policy: {
           extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

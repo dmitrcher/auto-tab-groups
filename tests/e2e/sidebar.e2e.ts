@@ -121,10 +121,15 @@ test.describe("Sidebar", () => {
   })
 
   test("previews the tabs of a collapsed group and switches to an existing tab", async () => {
+    const panel = await popupPage.evaluate(() => chrome.sidePanel.getOptions({}))
+    expect(panel).toMatchObject({ enabled: true, path: "sidebar.html" })
+
     await createTab(context, TEST_URLS.domain1)
     await createTab(context, TEST_URLS.domain1Page2)
     await sidebarPage.bringToFront()
     await sidebarPage.locator("#group").click()
+    const heading = sidebarPage.getByRole("heading", { name: "Open groups" })
+    await heading.hover()
     await waitForGroup(popupPage, "Example")
     await collapseAllGroups(popupPage)
     await expect.poll(async () => (await waitForGroup(popupPage, "Example")).collapsed).toBe(true)
@@ -139,7 +144,7 @@ test.describe("Sidebar", () => {
 
     await summary.hover()
     await expect(tab).toBeVisible()
-    await sidebarPage.getByRole("heading", { name: "Open groups" }).hover()
+    await heading.hover()
     await expect(tab).toBeHidden()
 
     await summary.hover()
