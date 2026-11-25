@@ -11,6 +11,12 @@
     <div class="popup-container">
       <h1 data-i18n="popupTitle">Auto Tab Groups</h1>
       <main>
+        <section class="group-navigator">
+          <h2 data-i18n="sidebarOpenGroups">Open groups</h2>
+          <p class="group-navigator-empty" data-i18n="sidebarNoOpenGroups" hidden>No open groups in this window.</p>
+          <p class="group-navigator-error" data-i18n="sidebarGroupLoadError" hidden>Could not load tab groups.</p>
+          <div class="group-navigator-list"></div>
+        </section>
         <div class="button-group-row">
           <button id="group" class="button primaryButton" data-i18n="popupGroupTabs">Group Tabs</button>
           <button id="ungroup" class="button primaryButton" data-i18n="popupUngroupAll">Ungroup All</button>

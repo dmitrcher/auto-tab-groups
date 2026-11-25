@@ -1,0 +1,81 @@
+.sidebar-container .popup-container {
+  min-width: 0;
+  padding-inline: 12px;
+}
+
+.group-navigator {
+  display: grid;
+  gap: 8px;
+  padding-block-end: 12px;
+  border-block-end: 1px solid #d1d5db;
+}
+
+.group-navigator-list {
+  display: grid;
+  gap: 4px;
+}
+
+.group-navigator-list details {
+  border-inline-start: 3px solid var(--tab-group-color);
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.group-navigator-list summary {
+  padding: 7px 8px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  color: #111827;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.group-navigator-title {
+  overflow-wrap: anywhere;
+}
+
+.group-navigator-count {
+  margin-inline-start: 8px;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.group-navigator-list ul {
+  list-style: none;
+  max-height: min(40vh, 24rem);
+  overflow-y: auto;
+  padding: 2px 2px 2px 4px;
+}
+
+.group-navigator-list li button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 9px;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.group-navigator-list li button:hover,
+.group-navigator-list li button:focus-visible {
+  background: #e8efff;
+}
+
+.group-navigator-list :is(summary, button):focus-visible {
+  outline: 2px solid #2a6cfb;
+  outline-offset: -2px;
+}
+
+.group-navigator-empty,
+.group-navigator-error {
+  color: #4b5563;
+  font-size: 12px;
+}

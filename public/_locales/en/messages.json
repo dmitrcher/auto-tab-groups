@@ -1,4 +1,7 @@
 {
+  "sidebarOpenGroups": { "message": "Open groups" },
+  "sidebarNoOpenGroups": { "message": "No open groups in this window." },
+  "sidebarGroupLoadError": { "message": "Could not load tab groups." },
   "extensionName": {
     "message": "Auto Tab Groups",
     "description": "The name of the extension as it appears in the browser store and toolbar."

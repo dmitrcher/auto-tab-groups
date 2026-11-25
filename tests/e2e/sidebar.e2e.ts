@@ -10,8 +10,10 @@
 import { type BrowserContext, expect, type Page, test } from "@playwright/test"
 import {
   closeTestTabs,
+  collapseAllGroups,
   createTab,
   disableAutoGroup,
+  getActiveTab,
   getExtensionId,
   getTabGroups,
   launchExtensionContext,
@@ -116,6 +118,37 @@ test.describe("Sidebar", () => {
     await expect(async () => {
       expect(await getTabGroups(popupPage)).toEqual([])
     }).toPass()
+  })
+
+  test("previews the tabs of a collapsed group and switches to an existing tab", async () => {
+    await createTab(context, TEST_URLS.domain1)
+    await createTab(context, TEST_URLS.domain1Page2)
+    await sidebarPage.bringToFront()
+    await sidebarPage.locator("#group").click()
+    await waitForGroup(popupPage, "Example")
+    await collapseAllGroups(popupPage)
+    await expect.poll(async () => (await waitForGroup(popupPage, "Example")).collapsed).toBe(true)
+
+    const group = sidebarPage.locator(".group-navigator-list details").filter({
+      has: sidebarPage.locator("summary", { hasText: "Example" })
+    })
+    const summary = group.locator("summary")
+    const tab = group.getByRole("button", { name: "example.com/page2", exact: true })
+    await expect(summary).toBeVisible()
+    await expect(tab).toBeHidden()
+
+    await summary.hover()
+    await expect(tab).toBeVisible()
+    await sidebarPage.getByRole("heading", { name: "Open groups" }).hover()
+    await expect(tab).toBeHidden()
+
+    await summary.hover()
+    await tab.hover()
+    await expect(tab).toBeVisible()
+    await tab.click()
+    await expect
+      .poll(async () => (await getActiveTab(popupPage))?.url)
+      .toBe(new URL(TEST_URLS.domain1Page2).href)
   })
 
   test("System group toggle disables the dependent new-empty-tabs toggle", async () => {
